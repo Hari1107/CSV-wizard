@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            background-color: #fafafa;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+
+        label.upload-btn {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        label.upload-btn:hover {
+            background-color: #00ffff;
+        }
+
+        #columnSelector {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <label for="csvFile" class="upload-btn">Choose CSV File</label>
+    <input type="file" id="csvFile" accept=".csv"><br><br>
+    <div id="columnSelector"></div><br>
+    <br><br>
+    <div id="status"></div>
+<script>
+    var csvData; 
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                csvData = parseCSV(e.target.result);
+                enableColumnSelection();
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function parseCSV(csv) {
+        var rows = csv.split('\n');
+        var result = [];
+        for (var i = 0; i < rows.length; i++) {
+            var columns = rows[i].split(',');
+            result.push(columns);
+        }
+        return result;
+    }
+
+    function enableColumnSelection() {
+        var columnSelector = document.getElementById('columnSelector');
+        columnSelector.innerHTML = '<label>Select Columns to Import:</label><br>';
+
+        for (var i = 0; i < csvData[0].length; i++) {
+            columnSelector.innerHTML += '<input type="checkbox" id="column' + i + '" value="' + i + '"> Column ' + csvData[0][i] + '<br>';
+        }
+
+        columnSelector.innerHTML += '<br><button id="importColumnsButton" onclick="importSelectedColumns()">Import Selected Columns</button>';
+    }
+
+    function importSelectedColumns() {
+        var selectedColumns = [];
+        for (var i = 0; i < csvData[0].length; i++) {
+            var checkbox = document.getElementById('column' +i);
+            if (checkbox.checked) {
+                selectedColumns.push(i);
+            }
+        }
+
+        if (selectedColumns.length === 0) {
+            alert("Please select at least one column to import.");
+            return;
+        }
+        var selectedData = csvData.map(function(row) {
+            return selectedColumns.map(function(col) {
+                return row[col];
+            });
+        });
+        google.script.run.withSuccessHandler(updateStatus).importSelectedColumns(selectedData);
+    }
+
+    function updateStatus(status) {
+        document.getElementById('status').innerHTML = status;
+    }
+</script>
+</body>
+</html>
